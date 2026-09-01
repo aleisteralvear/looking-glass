@@ -1,0 +1,6 @@
+{
+  "name": "Remix Project Looking Glass",
+  "description": "A virtual looking glass device that uses Gemini to provide highly detailed visual and textual intelligence on any subject.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
