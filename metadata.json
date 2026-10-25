@@ -1,0 +1,8 @@
+{
+  "name": "Remix Project Looking Glass",
+  "description": "Temporal and spatial intelligence device powered by the next-generation Gemini 4 Argon engine, delivering non-deterministic trajectory analysis, quantum probability timelines, and visual telemetry.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
