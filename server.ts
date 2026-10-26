@@ -391,10 +391,10 @@ async function startServer() {
   });
 
   // Backend random dice roll endpoint for manifestation
-  // Uniform 1/3 nominal probability across Astaroth, Belial, Lucifer
+  // Uniform 1/3 nominal probability across Astaroth, Gusion, Purson
   app.post("/api/session/roll-sigil", (req, res) => {
     try {
-      const sigils = ["astaroth", "belial", "lucifer"] as const;
+      const sigils = ["astaroth", "gusion", "purson"] as const;
       const selectedSigil = sigils[Math.floor(Math.random() * sigils.length)];
       const sessionId = req.body?.sessionId || `session-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
       res.json({ success: true, sessionId, selectedSigil });
@@ -735,8 +735,9 @@ INSTRUCTIONS:
     const vite = await createViteServer({
       server: { 
         middlewareMode: true,
+        hmr: false,
         watch: {
-          ignored: ['**/*'],
+          ignored: ['**/node_modules/**', '**/dist/**'],
         },
       },
       appType: "spa",

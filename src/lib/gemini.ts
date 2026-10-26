@@ -41,7 +41,7 @@ function getClearanceHeaders(): HeadersInit {
   return headers;
 }
 
-export type SigilId = 'astaroth' | 'belial' | 'lucifer';
+export type SigilId = 'astaroth' | 'gusion' | 'purson';
 
 export interface RollSigilResponse {
   success: boolean;
@@ -61,7 +61,7 @@ export async function rollBackendSigil(sessionId: string): Promise<SigilId> {
     });
     if (response.ok) {
       const data: RollSigilResponse = await response.json();
-      if (['astaroth', 'belial', 'lucifer'].includes(data.selectedSigil)) {
+      if (['astaroth', 'gusion', 'purson'].includes(data.selectedSigil)) {
         return data.selectedSigil;
       }
     }
@@ -69,7 +69,7 @@ export async function rollBackendSigil(sessionId: string): Promise<SigilId> {
     console.warn("Backend sigil roll failed, safe fallback:", err);
   }
   // Safe uniform 1/3 fallback if network error occurs
-  const sigils: SigilId[] = ['astaroth', 'belial', 'lucifer'];
+  const sigils: SigilId[] = ['astaroth', 'gusion', 'purson'];
   return sigils[Math.floor(Math.random() * sigils.length)];
 }
 

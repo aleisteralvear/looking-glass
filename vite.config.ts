@@ -17,9 +17,9 @@ export default defineConfig(({mode}) => {
     },
     server: {
       watch: {
-        ignored: ['**/*'],
+        ignored: ['**/node_modules/**', '**/dist/**'],
       },
-      hmr: process.env.DISABLE_HMR !== 'true',
+      hmr: false,
     },
   };
 });

@@ -9,6 +9,7 @@ export type SigilId = ManifestationSigilId;
 interface ManifestedSigilProps {
   isScanning: boolean;
   activeSigil: SigilId | null;
+  onFadeComplete?: () => void;
 }
 
 // Pre-load textures for instantaneous manifestation with zero latency
@@ -29,7 +30,7 @@ function getSigilTexture(id: SigilId): THREE.Texture {
 
 // Preload all 3 PNGs immediately on client startup
 if (typeof window !== 'undefined') {
-  (['astaroth', 'belial', 'lucifer'] as SigilId[]).forEach((id) => {
+  (['astaroth', 'gusion', 'purson'] as SigilId[]).forEach((id) => {
     getSigilTexture(id);
   });
 }
@@ -90,7 +91,7 @@ const RedHotMetalShader = {
   `
 };
 
-export const ManifestedSigil: React.FC<ManifestedSigilProps> = ({ isScanning, activeSigil }) => {
+export const ManifestedSigil: React.FC<ManifestedSigilProps> = ({ isScanning, activeSigil, onFadeComplete }) => {
   const meshRef = useRef<THREE.Mesh>(null);
   const materialRef = useRef<THREE.ShaderMaterial>(null);
   const lightRef = useRef<THREE.PointLight>(null);
@@ -99,7 +100,8 @@ export const ManifestedSigil: React.FC<ManifestedSigilProps> = ({ isScanning, ac
   const animRef = useRef({
     opacity: activeSigil ? 1.0 : 0.0,
     heat: isScanning ? 1.0 : 0.65,
-    scale: 1.0
+    scale: 1.0,
+    hasFadedOut: false
   });
 
   const uniforms = useMemo(() => ({
@@ -116,6 +118,7 @@ export const ManifestedSigil: React.FC<ManifestedSigilProps> = ({ isScanning, ac
       const tex = getSigilTexture(activeSigil);
       materialRef.current.uniforms.uTexture.value = tex;
       materialRef.current.needsUpdate = true;
+      animRef.current.hasFadedOut = false;
     }
   }, [activeSigil]);
 
@@ -129,11 +132,19 @@ export const ManifestedSigil: React.FC<ManifestedSigilProps> = ({ isScanning, ac
         anim.opacity = Math.min(1.0, anim.opacity + delta * 4.5);
         anim.heat = Math.min(1.1, anim.heat + delta * 2.0);
         anim.scale = 1.0 + Math.sin(time * 5.0) * 0.03;
+        anim.hasFadedOut = false;
       } else {
-        // Settled resting state: warm cherry-red incandescence inside crystal orb
-        anim.opacity = THREE.MathUtils.lerp(anim.opacity, 0.98, delta * 3.0);
-        anim.heat = THREE.MathUtils.lerp(anim.heat, 0.62, delta * 2.0);
+        // End-of-scan phase: smooth fade out to zero opacity inside crystal orb
+        anim.opacity = Math.max(0.0, anim.opacity - delta * 2.5);
+        anim.heat = Math.max(0.0, anim.heat - delta * 2.0);
         anim.scale = THREE.MathUtils.lerp(anim.scale, 1.0, delta * 3.0);
+
+        if (anim.opacity <= 0.001 && !anim.hasFadedOut) {
+          anim.hasFadedOut = true;
+          if (onFadeComplete) {
+            onFadeComplete();
+          }
+        }
       }
     } else {
       anim.opacity = Math.max(0.0, anim.opacity - delta * 2.5);

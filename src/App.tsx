@@ -73,7 +73,7 @@ export default function App() {
     setLastQueryParams(queryParams);
 
     // Immediate zero-latency activation with backend roll synchronization
-    const initialRoll = (['astaroth', 'belial', 'lucifer'] as const)[Math.floor(Math.random() * 3)];
+    const initialRoll = (['astaroth', 'gusion', 'purson'] as const)[Math.floor(Math.random() * 3)];
     setActiveSigil(initialRoll);
 
     // Backend dice roll for manifestation
@@ -212,7 +212,11 @@ export default function App() {
         </motion.div>
 
         <div ref={lookingGlassRef} id="looking-glass-animation" className="w-full flex justify-center scroll-mt-6">
-          <LookingGlass isScanning={isScanning} activeSigil={activeSigil} />
+          <LookingGlass 
+            isScanning={isScanning} 
+            activeSigil={activeSigil} 
+            onFadeComplete={() => setActiveSigil(null)} 
+          />
         </div>
 
         <motion.div 
