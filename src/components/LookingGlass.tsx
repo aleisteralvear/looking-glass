@@ -1,8 +1,9 @@
 import React, { useRef, useState, useEffect, useMemo, Suspense } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Float, Sparkles, Center, Sphere, Torus, MeshTransmissionMaterial } from '@react-three/drei';
 import * as THREE from 'three';
 import { ManifestedSigil, SigilId } from './ManifestedSigil';
+import { EctoplasmicMist } from './EctoplasmicMist';
 
 const RaytracedRing = ({ 
   scale, 
@@ -93,77 +94,45 @@ const DynamicLights = ({ isScanning }: { isScanning: boolean }) => {
 };
 
 const CoreLight = ({ isScanning }: { isScanning: boolean }) => {
-  const lightRef = useRef<THREE.PointLight>(null);
-  const coreMeshRef = useRef<THREE.Mesh>(null);
-  const raysGroupRef = useRef<THREE.Group>(null);
+  const topLightRef = useRef<THREE.PointLight>(null);
+  const bottomLightRef = useRef<THREE.PointLight>(null);
 
-  useFrame(({ clock }, delta) => {
+  useFrame(({ clock }) => {
     const time = clock.getElapsedTime();
-    if (lightRef.current) {
-      const baseIntensity = isScanning ? 7.5 : 3.2;
-      const pulsing = isScanning ? Math.sin(time * 12) * 2.5 : Math.sin(time * 3.5) * 0.7;
-      lightRef.current.intensity = baseIntensity + pulsing;
+    if (topLightRef.current) {
+      const baseIntensity = isScanning ? 4.8 : 2.4;
+      const pulsing = Math.sin(time * (isScanning ? 6 : 2)) * 0.6;
+      topLightRef.current.intensity = baseIntensity + pulsing;
     }
-
-    if (raysGroupRef.current) {
-      // Gently waving solar rays rotation & dynamic scale pulse
-      const raySpinSpeed = isScanning ? 2.2 : 0.6;
-      raysGroupRef.current.rotation.z += delta * raySpinSpeed;
-      raysGroupRef.current.rotation.y += delta * (raySpinSpeed * 0.5);
-      const waveScale = 1.0 + Math.sin(time * (isScanning ? 8.0 : 3.0)) * 0.08;
-      raysGroupRef.current.scale.set(waveScale, waveScale, waveScale);
-    }
-
-    if (coreMeshRef.current) {
-      const corePulse = 1.0 + Math.sin(time * 4.0) * 0.05;
-      coreMeshRef.current.scale.set(corePulse, corePulse, corePulse);
+    if (bottomLightRef.current) {
+      const baseIntensity = isScanning ? 4.2 : 2.0;
+      const pulsing = Math.cos(time * (isScanning ? 5 : 1.8)) * 0.5;
+      bottomLightRef.current.intensity = baseIntensity + pulsing;
     }
   });
 
   return (
     <group position={[0, 0, 0]}>
-      {/* Central 3D Point Light */}
+      {/* Invisible mist radiance illuminating glass and rings: Cyan upper, Neon Magenta lower base */}
       <pointLight 
-        ref={lightRef} 
-        position={[0, 0, 0]} 
-        color={isScanning ? "#ffd700" : "#00f0ff"} 
-        distance={9} 
+        ref={topLightRef} 
+        position={[0, 0.3, 0]} 
+        color="#00e5ff" 
+        distance={7} 
       />
-
-      {/* Ethereal Miniature Sun Core */}
-      <Sphere ref={coreMeshRef} args={[0.24, 32, 32]}>
-        <meshBasicMaterial 
-          color={isScanning ? "#ffe680" : "#00f0ff"} 
-          transparent={true}
-          opacity={isScanning ? 0.95 : 0.75}
-        />
-      </Sphere>
-
-      {/* Gently Waving Solar Rays Corona */}
-      <group ref={raysGroupRef}>
-        {[0, 45, 90, 135].map((angle, idx) => (
-          <mesh key={idx} rotation={[0, 0, (angle * Math.PI) / 180]}>
-            <planeGeometry args={[0.95, 0.95]} />
-            <meshBasicMaterial
-              color={isScanning ? "#ffb700" : "#00e5ff"}
-              transparent={true}
-              opacity={isScanning ? 0.45 : 0.28}
-              side={THREE.DoubleSide}
-              depthWrite={false}
-              blending={THREE.AdditiveBlending}
-            />
-          </mesh>
-        ))}
-      </group>
+      <pointLight 
+        ref={bottomLightRef} 
+        position={[0, -0.6, 0]} 
+        color="#ff2a8d" 
+        distance={6} 
+      />
     </group>
   );
 };
 
 // Refractive Crystal Glass Orb with procedural surface noise normal map
 const CosmicPlasmaOrb = ({ isScanning }: { isScanning: boolean }) => {
-  const innerRef = useRef<THREE.Mesh>(null);
   const outerRef = useRef<THREE.Mesh>(null);
-  const [orbTexture, setOrbTexture] = useState<THREE.Texture | null>(null);
 
   // Generate procedural noise-based normal map for subtle, realistic glass imperfections
   const glassNormalTexture = useMemo(() => {
@@ -208,21 +177,7 @@ const CosmicPlasmaOrb = ({ isScanning }: { isScanning: boolean }) => {
     return texture;
   }, []);
 
-  useEffect(() => {
-    const loader = new THREE.TextureLoader();
-    loader.load('/orb_texture.png', (tex) => {
-      tex.colorSpace = THREE.SRGBColorSpace;
-      tex.wrapS = THREE.RepeatWrapping;
-      tex.wrapT = THREE.RepeatWrapping;
-      setOrbTexture(tex);
-    });
-  }, []);
-
   useFrame((state, delta) => {
-    if (innerRef.current) {
-      innerRef.current.rotation.y += delta * (isScanning ? 0.35 : 0.08);
-      innerRef.current.rotation.x += delta * (isScanning ? 0.2 : 0.04);
-    }
     if (outerRef.current) {
       outerRef.current.rotation.y -= delta * (isScanning ? 0.15 : 0.03);
     }
@@ -230,23 +185,7 @@ const CosmicPlasmaOrb = ({ isScanning }: { isScanning: boolean }) => {
 
   return (
     <group scale={isScanning ? 1.05 : 1}>
-      {/* Subtle Inner Cosmic Swirl (Transparent, non-blocking) */}
-      <mesh ref={innerRef} renderOrder={1}>
-        <sphereGeometry args={[1.08, 64, 64]} />
-        <meshStandardMaterial
-          map={orbTexture}
-          color="#1e2638"
-          roughness={0.2}
-          metalness={0.1}
-          emissive="#091426"
-          emissiveIntensity={0.6}
-          transparent={true}
-          opacity={0.35}
-          depthWrite={false}
-        />
-      </mesh>
-
-      {/* Outer Refractive Crystal Glass Shell (Fast Path Refraction with Normal Map Imperfections) */}
+      {/* Outer Refractive Crystal Glass Shell (Preserves all front-facing texture & back-refraction) */}
       <mesh ref={outerRef} renderOrder={10}>
         <sphereGeometry args={[1.12, 96, 96]} />
         <MeshTransmissionMaterial
@@ -272,6 +211,68 @@ const CosmicPlasmaOrb = ({ isScanning }: { isScanning: boolean }) => {
       </mesh>
     </group>
   );
+};
+
+// Swirling Ectoplasmic Mist filling the crystal orb volume
+const EctoplasmicMistInterior = ({ isScanning }: { isScanning: boolean }) => {
+  const { gl, camera, size } = useThree();
+  const mistRef = useRef<EctoplasmicMist | null>(null);
+  const containerRef = useRef<THREE.Group>(null);
+
+  useEffect(() => {
+    // Instantiate high-density ectoplasmic mist matching the reference image
+    const mist = new EctoplasmicMist({
+      renderer: gl,
+      camera,
+      texSize: 192, // 36,864 GPU particles for rich volumetric smoke ribbons
+      pointSize: 0.052,
+      opacity: 0.16, // Rich luminous smoke presence during idle
+      spring: 2.4,
+      damping: 1.35,
+      swirl: 1.45,
+      noiseScale: 0.75,
+      noiseSpeed: 0.16,
+      maxSpeed: 14.0,
+      radiusLimit: 0.98 // Strictly contained inside the 1.12-radius glass sphere
+    });
+
+    mist.setViewportSize(size.width, size.height);
+
+    // Interactive pointer drag: swirl the smoke like a fan blade
+    mist.attachPointer(gl.domElement);
+
+    if (containerRef.current) {
+      containerRef.current.add(mist.object3D);
+    }
+    mistRef.current = mist;
+
+    return () => {
+      mist.dispose();
+      mistRef.current = null;
+    };
+  }, [gl, camera]);
+
+  // Maintain point sizing across canvas resize
+  useEffect(() => {
+    if (mistRef.current) {
+      mistRef.current.setViewportSize(size.width, size.height);
+    }
+  }, [size.width, size.height]);
+
+  // Synchronize mist swirl and luminosity with the existing scan lifecycle
+  useFrame((_, delta) => {
+    if (mistRef.current) {
+      const targetOpacity = isScanning ? 0.32 : 0.16;
+      const targetSwirl = isScanning ? 2.3 : 1.45;
+      const targetSpeed = isScanning ? 0.32 : 0.16;
+
+      mistRef.current.setOpacity(targetOpacity);
+      mistRef.current.setSwirl(targetSwirl, targetSpeed);
+      mistRef.current.update(delta);
+    }
+  });
+
+  return <group ref={containerRef} />;
 };
 
 export const LookingGlass = React.memo(({ 
@@ -320,6 +321,9 @@ export const LookingGlass = React.memo(({
                   {/* Central Cosmic Plasma Crystal Orb */}
                   <CosmicPlasmaOrb isScanning={isScanning} />
                   
+                  {/* Swirling Ectoplasmic Mist inside the Orb */}
+                  <EctoplasmicMistInterior isScanning={isScanning} />
+
                   {/* Manifested Red-Hot Metal Sigil inside the Orb */}
                   <ManifestedSigil isScanning={isScanning} activeSigil={activeSigil || null} onFadeComplete={onFadeComplete} />
                   

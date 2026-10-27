@@ -674,13 +674,82 @@ INSTRUCTIONS:
   // Secure surveillance imagery generator proxy route
   app.post("/api/gemini/visual", async (req, res) => {
     try {
-      // Instantly generate high-fidelity dynamic vector telemetry HUD
-      const visualUrl = generateLocalFallbackVisual(req.body.params);
-      res.json({ success: true, imageUrl: visualUrl });
+      const customKey = req.headers['x-gemini-api-key'] as string;
+      const params = req.body?.params || {};
+
+      // Default directly to free-tier vector telemetry visual generator when no custom paid key is provided.
+      // This prevents 429 quota exhaustion on standard free tier accounts.
+      if (!customKey || customKey.trim().length === 0) {
+        console.log("Generating default free-tier vector telemetry surveillance visual.");
+        const freeTierVisualUrl = generateLocalFallbackVisual(params);
+        return res.json({ success: true, imageUrl: freeTierVisualUrl, fallback: true });
+      }
+
+      // If a custom operator key is configured, execute AI image generation via gemini-3.1-flash-lite-image
+      let subject = "Quantum causality manifold and timeline probability nexus";
+      let location = "spatial locus";
+      let temporal = "chrono-epoch";
+
+      if (params.targets && Array.isArray(params.targets) && params.targets.length > 0) {
+        const t = params.targets[0];
+        if (t.type === 'Person') {
+          subject = t.targetName ? `Target individual ${t.targetName}` : "Target subject of inquiry";
+          location = t.locationAnchor ? `located in vicinity of ${t.locationAnchor}` : "spatial coordinate locus";
+          temporal = t.temporalAnchor || t.dob ? `temporal epoch ${t.temporalAnchor || t.dob}` : "current timeline";
+        } else if (t.type === 'Place') {
+          subject = t.placeName ? `Target facility or regional complex ${t.placeName} (${t.placeType || 'physical facility'})` : "Target spatial structure";
+          location = t.placeLocation ? `geospatial locus ${t.placeLocation}` : "designated site";
+          temporal = t.placeTemporal ? `temporal horizon ${t.placeTemporal}` : "current chrono-epoch";
+        } else if (t.type === 'Other') {
+          subject = t.otherDescription || "Quantum anomaly or systemic target entity";
+        }
+      } else if (params.queryBody && !params.isDefaultQuery) {
+        subject = `Surveillance scan focused on: ${params.queryBody.slice(0, 120)}`;
+      }
+
+      const visualPrompt = `Classified satellite reconnaissance imagery and quantum chronodynamics telemetry surveillance photograph showing: ${subject}, ${location}, ${temporal}. High resolution, hyper-detailed tactical defense surveillance camera capture, subtle chromatic optical dispersion, holographic reticle overlays, atmospheric depth, cinematic lighting, dramatic contrast, futuristic defense skunkworks aesthetic, crisp 8k photorealistic quality.`;
+
+      console.log("Custom clearance key detected: executing Gemini AI visual generation...");
+      const ai = getGeminiClient(customKey);
+      const response = await withTimeout(
+        ai.models.generateContent({
+          model: "gemini-3.1-flash-lite-image",
+          contents: {
+            parts: [
+              { text: visualPrompt },
+            ],
+          },
+          config: {
+            imageConfig: {
+              aspectRatio: "1:1",
+            },
+          },
+        }),
+        25000
+      );
+
+      let generatedImageUrl = "";
+      if (response.candidates?.[0]?.content?.parts) {
+        for (const part of response.candidates[0].content.parts) {
+          if (part.inlineData?.data) {
+            const mimeType = part.inlineData.mimeType || "image/png";
+            generatedImageUrl = `data:${mimeType};base64,${part.inlineData.data}`;
+            break;
+          }
+        }
+      }
+
+      if (generatedImageUrl) {
+        console.log("Gemini AI surveillance visual successfully generated.");
+        return res.json({ success: true, imageUrl: generatedImageUrl, fallback: false });
+      }
+
+      const fallbackUrl = generateLocalFallbackVisual(params);
+      return res.json({ success: true, imageUrl: fallbackUrl, fallback: true });
     } catch (err: any) {
-      console.warn("Visual telemetry feed error:", err);
-      const fallbackImageUrl = generateLocalFallbackVisual(req.body.params);
-      res.json({ success: true, imageUrl: fallbackImageUrl });
+      console.log("Visual generation defaulted to vector telemetry HUD feed.");
+      const fallbackImageUrl = generateLocalFallbackVisual(req.body?.params);
+      res.json({ success: true, imageUrl: fallbackImageUrl, fallback: true });
     }
   });
 

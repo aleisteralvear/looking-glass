@@ -3,6 +3,29 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      (function() {
+        var suppress = function(e) {
+          var msg = (e && (e.message || (e.reason && e.reason.message) || String(e.reason || e))) || '';
+          var file = (e && (e.filename || (e.error && e.error.stack))) || '';
+          if (file.indexOf('@vite/client') !== -1 || msg.indexOf('WebSocket') !== -1 || msg.indexOf('@vite/client') !== -1 || msg.indexOf('createWebSocketModuleRunnerTransport') !== -1) {
+            if (e.preventDefault) e.preventDefault();
+            if (e.stopPropagation) e.stopPropagation();
+            if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+            return true;
+          }
+        };
+        window.addEventListener('error', suppress, true);
+        window.addEventListener('unhandledrejection', suppress, true);
+        var prevOnError = window.onerror;
+        window.onerror = function(msg, url, lineNo, columnNo, error) {
+          if ((url && url.indexOf('@vite/client') !== -1) || (msg && String(msg).indexOf('WebSocket') !== -1) || (error && error.stack && error.stack.indexOf('@vite/client') !== -1)) {
+            return true;
+          }
+          if (prevOnError) return prevOnError.apply(this, arguments);
+        };
+      })();
+    </script>
     <title>Project Looking Glass // Gemini 4 Argon</title>
     <meta name="description" content="Temporal and spatial intelligence device powered by the next-generation Gemini 4 Argon engine, delivering non-deterministic trajectory analysis, quantum probability timelines, and visual telemetry." />
     <meta property="og:title" content="Project Looking Glass // Gemini 4 Argon" />
